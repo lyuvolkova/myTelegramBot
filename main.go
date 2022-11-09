@@ -1,12 +1,16 @@
 package main
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/robfig/cron/v3"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 )
+
+var secondParser = cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
 
 func getUserId(str string) (map[int64]struct{}, error) {
 	parts := strings.Split(str, ",")
@@ -21,6 +25,10 @@ func getUserId(str string) (map[int64]struct{}, error) {
 	return users, nil
 }
 
+//func newWithSeconds() *cron.Cron {
+//	return cron.New(cron.WithParser(secondParser), cron.WithChain())
+//}
+
 func main() {
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
@@ -32,7 +40,19 @@ func main() {
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+	//myCron := cron.New()
+	myCron := cron.New(cron.WithParser(secondParser), cron.WithChain())
+	myCron.Start()
+	defer myCron.Stop()
+	myCron.AddFunc("0 30 18 18 * ?", func() {
+		for i, _ := range users {
+			_, err = bot.Send(tgbotapi.NewMessage(i, "I need data!"))
+			if err != nil {
+				log.Println(fmt.Errorf("cron: %w", err))
+			}
+		}
 
+	})
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -40,7 +60,7 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			if _, exists := users[update.Message.Chat.ID]; !exists {
+			if _, exists := users[update.Message.Chat.ID]; !exists { //check the sender of a message
 				continue
 			}
 			log.Printf("[%s] %s\n", update.Message.From.UserName, update.Message.Text)
