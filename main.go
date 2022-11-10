@@ -16,18 +16,14 @@ func getUserId(str string) (map[int64]struct{}, error) {
 	parts := strings.Split(str, ",")
 	users := make(map[int64]struct{})
 	for _, val := range parts {
-		user_id, err := strconv.ParseInt(val, 10, 64)
+		userId, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		users[user_id] = struct{}{}
+		users[userId] = struct{}{}
 	}
 	return users, nil
 }
-
-//func newWithSeconds() *cron.Cron {
-//	return cron.New(cron.WithParser(secondParser), cron.WithChain())
-//}
 
 func main() {
 	users, err := getUserId(os.Getenv("USER_IDS"))
@@ -40,7 +36,6 @@ func main() {
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	//myCron := cron.New()
 	myCron := cron.New(cron.WithParser(secondParser), cron.WithChain())
 	myCron.Start()
 	defer myCron.Stop()
