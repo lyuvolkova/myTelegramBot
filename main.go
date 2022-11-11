@@ -11,6 +11,7 @@ import (
 )
 
 var secondParser = cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
+var ColdData float64
 
 func getUserId(str string) (map[int64]struct{}, error) {
 	parts := strings.Split(str, ",")
@@ -26,6 +27,7 @@ func getUserId(str string) (map[int64]struct{}, error) {
 }
 
 func main() {
+	ColdData = 1.1
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
 		log.Panic(err)
@@ -58,14 +60,26 @@ func main() {
 			if _, exists := users[update.Message.Chat.ID]; !exists { //check the sender of a message
 				continue
 			}
-			log.Printf("[%s] %s\n", update.Message.From.UserName, update.Message.Text)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "I don't understand you !")
-			if update.Message.Text == "Hello" {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Hello!")
-			} else if update.Message.Text == "Bye" {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Bye bye!")
+			text := update.Message.Text
+			log.Printf("[%s] %s\n", update.Message.From.UserName, text)
+			textMsg := "I don't understand you !"
+			if text == "Hello" {
+				textMsg = "Hello, " + update.Message.Chat.FirstName + "!"
+			} else if text == "Bye" {
+				textMsg = "Bye bye!"
+			} else if text == "/cold_data" {
+				s := fmt.Sprintf("%v", ColdData)
+				textMsg = "Cold water: " + s
+			} else if strings.HasPrefix(text, "/cold_data ") {
+				MySlice := string([]rune(text)[11:])
+				ColdData, err = strconv.ParseFloat(MySlice, 32)
+				if err != nil {
+					textMsg = "Incorrect number"
+				}
+				textMsg = "Ok, date saved"
 			}
-			msg.ReplyToMessageID = update.Message.MessageID
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
+			//msg.ReplyToMessageID = update.Message.MessageID
 			bot.Send(msg)
 		}
 	}
