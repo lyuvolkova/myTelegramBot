@@ -27,7 +27,7 @@ func getUserId(str string) (map[int64]struct{}, error) {
 }
 
 func main() {
-	coldData := "0.0"
+	coldData := ""
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
 		log.Panic(err)
@@ -68,43 +68,49 @@ func main() {
 			} else if text == "Bye" {
 				textMsg = "Bye bye!"
 			} else if text == "/cold_data" {
-				file, err := os.Open("coldData.txt")
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer file.Close()
-
-				scanner := bufio.NewScanner(file)
-				for scanner.Scan() {
-					coldData = scanner.Text()
-				}
-				//s := fmt.Sprintf("%v", coldData)
-				if coldData == "" {
-					coldData = "No previous data"
-				}
-				textMsg = "Cold water: " + coldData
+				textMsg = getPrevData(coldData)
 			} else if strings.HasPrefix(text, "/cold_data ") {
-				coldData = string([]rune(text)[11:])
-				_, err = strconv.ParseFloat(coldData, 32)
-				if err == nil {
-					coldData += "\n"
-					file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
-					if err != nil {
-						panic(err)
-					}
-					defer file.Close()
-
-					if _, err = file.WriteString(coldData); err != nil {
-						panic(err)
-					}
-					textMsg = "Ok, date saved"
-				} else {
-					textMsg = "Incorrect number"
-				}
+				textMsg = writeColdData(text)
 			}
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 			//msg.ReplyToMessageID = update.Message.MessageID
 			bot.Send(msg)
 		}
 	}
+}
+
+func writeColdData(text string) string {
+	textMsg := "Ok, date saved"
+	coldData := string([]rune(text)[11:])
+	if _, err := strconv.ParseFloat(coldData, 32); err != nil {
+		textMsg = "Incorrect number"
+	} else {
+		coldData += "\n"
+		file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+		if _, err = file.WriteString(coldData); err != nil {
+			log.Fatal(err)
+		}
+	}
+	return textMsg
+}
+
+func getPrevData(coldData string) string {
+	file, err := os.Open("coldData.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		coldData = scanner.Text()
+	}
+	if coldData == "" {
+		coldData = "No previous data"
+	}
+	return "Cold water: " + coldData
 }
