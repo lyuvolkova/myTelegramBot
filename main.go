@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron/v3"
@@ -11,7 +12,6 @@ import (
 )
 
 var secondParser = cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
-var ColdData float64
 
 func getUserId(str string) (map[int64]struct{}, error) {
 	parts := strings.Split(str, ",")
@@ -27,7 +27,7 @@ func getUserId(str string) (map[int64]struct{}, error) {
 }
 
 func main() {
-	ColdData = 1.1
+	coldData := "0.0"
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
 		log.Panic(err)
@@ -68,15 +68,39 @@ func main() {
 			} else if text == "Bye" {
 				textMsg = "Bye bye!"
 			} else if text == "/cold_data" {
-				s := fmt.Sprintf("%v", ColdData)
-				textMsg = "Cold water: " + s
-			} else if strings.HasPrefix(text, "/cold_data ") {
-				MySlice := string([]rune(text)[11:])
-				ColdData, err = strconv.ParseFloat(MySlice, 32)
+				file, err := os.Open("coldData.txt")
 				if err != nil {
+					log.Fatal(err)
+				}
+				defer file.Close()
+
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					coldData = scanner.Text()
+				}
+				//s := fmt.Sprintf("%v", coldData)
+				if coldData == "" {
+					coldData = "No previous data"
+				}
+				textMsg = "Cold water: " + coldData
+			} else if strings.HasPrefix(text, "/cold_data ") {
+				coldData = string([]rune(text)[11:])
+				_, err = strconv.ParseFloat(coldData, 32)
+				if err == nil {
+					coldData += "\n"
+					file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
+					if err != nil {
+						panic(err)
+					}
+					defer file.Close()
+
+					if _, err = file.WriteString(coldData); err != nil {
+						panic(err)
+					}
+					textMsg = "Ok, date saved"
+				} else {
 					textMsg = "Incorrect number"
 				}
-				textMsg = "Ok, date saved"
 			}
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 			//msg.ReplyToMessageID = update.Message.MessageID
