@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var secondParser = cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
@@ -41,9 +42,9 @@ func main() {
 	myCron := cron.New(cron.WithParser(secondParser), cron.WithChain())
 	myCron.Start()
 	defer myCron.Stop()
-	myCron.AddFunc("0 30 18 18 * ?", func() {
+	myCron.AddFunc("0 00 19 18 * ?", func() {
 		for i, _ := range users {
-			_, err = bot.Send(tgbotapi.NewMessage(i, "I need data!"))
+			_, err = bot.Send(tgbotapi.NewMessage(i, "Hello\nhow are u?\nI NEED DATA!"))
 			if err != nil {
 				log.Println(fmt.Errorf("cron: %w", err))
 			}
@@ -68,7 +69,7 @@ func main() {
 			} else if text == "Bye" {
 				textMsg = "Bye bye!"
 			} else if text == "/cold_data" {
-				textMsg = getPrevData(coldData)
+				textMsg = "Cold water: " + getPrevData(coldData)
 			} else if strings.HasPrefix(text, "/cold_data ") {
 				textMsg = writeColdData(text)
 			}
@@ -81,23 +82,48 @@ func main() {
 
 func writeColdData(text string) string {
 	textMsg := "Ok, date saved"
-	coldData := string([]rune(text)[11:])
+	coldData := text[11:] //string([]rune(text)[11:])
 	if _, err := strconv.ParseFloat(coldData, 32); err != nil {
 		textMsg = "Incorrect number"
 	} else {
-		coldData += "\n"
-		file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
-		if _, err = file.WriteString(coldData); err != nil {
-			log.Fatal(err)
+		if !checkData(coldData) {
+			textMsg = "Check number: new data < prev data"
+		} else {
+			dt := time.Now()
+			coldData += dt.Format("  (01.02.2006 15:04:05)") + "\n"
+			file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer file.Close()
+			if _, err = file.WriteString(coldData); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 	return textMsg
 }
 
+func checkData(stringDate string) bool {
+	var d2 string
+	d2 = getPrevData(d2)
+	d1, err := strconv.ParseFloat(stringDate, 32)
+	if err != nil {
+		log.Fatal(err)
+	}
+	countNum := 0
+	for i, _ := range d2 {
+		if string(d2[i]) == " " {
+			countNum = i
+			break
+		}
+	}
+	newD2, err := strconv.ParseFloat(d2[:countNum], 32)
+	if d1 < newD2 {
+		return false
+	}
+	return true
+}
 func getPrevData(coldData string) string {
 	file, err := os.Open("coldData.txt")
 	if err != nil {
@@ -112,5 +138,5 @@ func getPrevData(coldData string) string {
 	if coldData == "" {
 		coldData = "No previous data"
 	}
-	return "Cold water: " + coldData
+	return coldData
 }
