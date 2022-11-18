@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron/v3"
+	"github.com/xuri/excelize/v2"
 	"log"
 	"os"
 	"strconv"
@@ -125,17 +125,24 @@ func checkData(stringDate string) bool {
 	return true
 }
 func getPrevData(coldData string) string {
-	file, err := os.Open("coldData.txt")
+	file, err := excelize.OpenFile("WaterData.xlsx")
+	if err != nil {
+		log.Println(err)
+		return "Not open file"
+	}
+	defer func() {
+		// Close the spreadsheet.
+		if err := file.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
+	// Get all the rows in the Sheet1.
+	rows, err := file.GetCols("Water data")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		coldData = scanner.Text()
-	}
-	if coldData == "" {
+	coldData = rows[1][len(rows[1])-1]
+	if coldData == "" || coldData == "ХВС" {
 		coldData = "No previous data"
 	}
 	return coldData
