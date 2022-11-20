@@ -81,27 +81,50 @@ func main() {
 }
 
 func writeColdData(text string) string {
-	textMsg := "Ok, date saved"
+
 	coldData := text[11:] //string([]rune(text)[11:])
 	if _, err := strconv.ParseFloat(coldData, 32); err != nil {
-		textMsg = "Incorrect number"
+		return "Incorrect number"
 	} else {
 		if !checkData(coldData) {
-			textMsg = "Check number: new data < prev data"
+			return "Check number: new data < prev data"
 		} else {
 			dt := time.Now()
-			coldData += dt.Format("  (01.02.2006 15:04:05)") + "\n"
-			file, err := os.OpenFile("coldData.txt", os.O_APPEND|os.O_WRONLY, 0600)
+			date := dt.Format("02.01.2006")
+			file, err := excelize.OpenFile("WaterData.xlsx")
+			if err != nil {
+				log.Println(err)
+				return "Not open file"
+			}
+			defer func() {
+				// Close the spreadsheet.
+				if err := file.Close(); err != nil {
+					log.Println(err)
+				}
+			}()
+			rows, err := file.GetCols("Water data")
 			if err != nil {
 				log.Fatal(err)
 			}
-			defer file.Close()
-			if _, err = file.WriteString(coldData); err != nil {
-				log.Fatal(err)
+			partDate := "A" + strconv.FormatInt(int64(len(rows[0])+1), 16)
+
+			partCold := "B" + strconv.FormatInt(int64(len(rows[1])+1), 16)
+			if len(rows[0]) != len(rows[1]) {
+				log.Println("Errors date in table")
+				if len(rows[0]) > len(rows[1]) {
+					partCold = "B" + strconv.FormatInt(int64(len(rows[0])+1), 16)
+				} else {
+					partDate = "A" + strconv.FormatInt(int64(len(rows[1])+1), 16)
+				}
+			}
+			file.SetCellValue("Water data", partCold, coldData)
+			file.SetCellValue("Water data", partDate, date)
+			if err := file.SaveAs("WaterData.xlsx"); err != nil {
+				return "Failed to save data :("
 			}
 		}
 	}
-	return textMsg
+	return "Ok, date saved"
 }
 
 func checkData(stringDate string) bool {
