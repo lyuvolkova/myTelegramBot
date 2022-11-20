@@ -28,7 +28,7 @@ func getUserId(str string) (map[int64]struct{}, error) {
 }
 
 func main() {
-	coldData := ""
+	//coldData := ""
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
 		log.Panic(err)
@@ -69,9 +69,11 @@ func main() {
 			} else if text == "Bye" {
 				textMsg = "Bye bye!"
 			} else if text == "/cold_data" {
-				textMsg = "Cold water: " + getPrevData(coldData)
+				textMsg = "Cold water: " + getPrevData()
 			} else if strings.HasPrefix(text, "/cold_data ") {
-				textMsg = writeColdData(text)
+				parTable := [2]string{"A", "B"}
+				i := 0
+				textMsg = writeColdData(text, parTable, i)
 			}
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 			//msg.ReplyToMessageID = update.Message.MessageID
@@ -80,10 +82,11 @@ func main() {
 	}
 }
 
-func writeColdData(text string) string {
+func writeColdData(text string, parTable [2]string, i int) string {
 
-	coldData := text[11:] //string([]rune(text)[11:])
-	if _, err := strconv.ParseFloat(coldData, 32); err != nil {
+	data := text[11:] //string([]rune(text)[11:])
+	coldData, err := strconv.ParseFloat(data, 32)
+	if err != nil {
 		return "Incorrect number"
 	} else {
 		if !checkData(coldData) {
@@ -106,18 +109,19 @@ func writeColdData(text string) string {
 			if err != nil {
 				log.Fatal(err)
 			}
-			partDate := "A" + strconv.FormatInt(int64(len(rows[0])+1), 16)
-
-			partCold := "B" + strconv.FormatInt(int64(len(rows[1])+1), 16)
-			if len(rows[0]) != len(rows[1]) {
+			partDate := parTable[0] + strconv.FormatInt(int64(len(rows[i])+1), 10)
+			fmt.Println("Data:", partDate)
+			partCold := parTable[1] + strconv.FormatInt(int64(len(rows[i+1])+1), 10)
+			fmt.Println("water:", partCold)
+			if len(rows[i]) != len(rows[i+1]) {
 				log.Println("Errors date in table")
-				if len(rows[0]) > len(rows[1]) {
-					partCold = "B" + strconv.FormatInt(int64(len(rows[0])+1), 16)
+				if len(rows[i]) > len(rows[i+1]) {
+					partCold = parTable[1] + strconv.FormatInt(int64(len(rows[i])+1), 10)
 				} else {
-					partDate = "A" + strconv.FormatInt(int64(len(rows[1])+1), 16)
+					partDate = parTable[0] + strconv.FormatInt(int64(len(rows[i+1])+1), 10)
 				}
 			}
-			file.SetCellValue("Water data", partCold, coldData)
+			file.SetCellFloat("Water data", partCold, coldData, 2, 64)
 			file.SetCellValue("Water data", partDate, date)
 			if err := file.SaveAs("WaterData.xlsx"); err != nil {
 				return "Failed to save data :("
@@ -127,27 +131,20 @@ func writeColdData(text string) string {
 	return "Ok, date saved"
 }
 
-func checkData(stringDate string) bool {
-	var d2 string
-	d2 = getPrevData(d2)
-	d1, err := strconv.ParseFloat(stringDate, 32)
+func checkData(d1 float64) bool {
+	//var d2 string
+	d2 := getPrevData()
+	newD2, err := strconv.ParseFloat(d2, 32)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	countNum := 0
-	for i, _ := range d2 {
-		if string(d2[i]) == " " {
-			countNum = i
-			break
-		}
-	}
-	newD2, err := strconv.ParseFloat(d2[:countNum], 32)
 	if d1 < newD2 {
 		return false
 	}
 	return true
 }
-func getPrevData(coldData string) string {
+
+func getPrevData() string {
 	file, err := excelize.OpenFile("WaterData.xlsx")
 	if err != nil {
 		log.Println(err)
@@ -164,7 +161,7 @@ func getPrevData(coldData string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	coldData = rows[1][len(rows[1])-1]
+	coldData := rows[1][len(rows[1])-1]
 	if coldData == "" || coldData == "ХВС" {
 		coldData = "No previous data"
 	}
