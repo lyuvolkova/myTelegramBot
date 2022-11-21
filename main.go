@@ -98,6 +98,7 @@ func writeColdData(text string, parTable [2]string, i int) string {
 	}
 	//string([]rune(text)[11:])
 	coldData, err := strconv.ParseFloat(data, 32)
+	fmt.Println(coldData)
 	if err != nil {
 		return "Incorrect number"
 	} else {
@@ -123,17 +124,41 @@ func writeColdData(text string, parTable [2]string, i int) string {
 			}
 			partDate := parTable[0] + strconv.FormatInt(int64(len(rows[i])+1), 10)
 			fmt.Println("Data:", partDate)
-			partCold := parTable[1] + strconv.FormatInt(int64(len(rows[i+1])+1), 10)
-			fmt.Println("water:", partCold)
+			partValueWater := parTable[1] + strconv.FormatInt(int64(len(rows[i+1])+1), 10)
+			fmt.Println("water:", partValueWater)
 			if len(rows[i]) != len(rows[i+1]) {
 				log.Println("Errors date in table")
 				if len(rows[i]) > len(rows[i+1]) {
-					partCold = parTable[1] + strconv.FormatInt(int64(len(rows[i])+1), 10)
+					partValueWater = parTable[1] + strconv.FormatInt(int64(len(rows[i])+1), 10)
 				} else {
 					partDate = parTable[0] + strconv.FormatInt(int64(len(rows[i+1])+1), 10)
 				}
 			}
-			file.SetCellFloat("Water data", partCold, coldData, 2, 64)
+			cell, err := file.GetCellValue("Water data", partValueWater)
+			if err != nil {
+				log.Println(err)
+			}
+			fmt.Println("CELL:", cell, len(cell))
+			num, err := strconv.ParseInt(partValueWater[1:], 10, 16)
+			if err != nil {
+				log.Println(err)
+			}
+			for len(cell) == 0 {
+				num--
+				numStr := strconv.FormatInt(num, 10)
+				partValueWater = string(partValueWater[0]) + numStr
+				cell, err = file.GetCellValue("Water data", partValueWater)
+				if err != nil {
+					break
+				}
+				fmt.Println(num)
+			}
+			num++
+			numStr := strconv.FormatInt(num, 10)
+			partValueWater = string(partValueWater[0]) + numStr
+			partDate = string(partDate[0]) + numStr
+
+			file.SetCellFloat("Water data", partValueWater, coldData, 2, 64)
 			file.SetCellValue("Water data", partDate, date)
 			if err := file.SaveAs("WaterData.xlsx"); err != nil {
 				return "Failed to save data :("
@@ -144,8 +169,10 @@ func writeColdData(text string, parTable [2]string, i int) string {
 }
 
 func checkData(d1 float64, i int) bool {
-	//var d2 string
-	d2 := getPrevData(i)
+	d2 := getPrevData(i + 1)
+	if d2 == "No previous data" {
+		return true
+	}
 	newD2, err := strconv.ParseFloat(d2, 32)
 	if err != nil {
 		log.Println(err)
@@ -168,12 +195,11 @@ func getPrevData(i int) string {
 			log.Println(err)
 		}
 	}()
-	// Get all the rows in the Sheet1.
+	// Get all the rows in the Water data.
 	rows, err := file.GetCols("Water data")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("I: ", i)
 	coldData := rows[i][len(rows[i])-1]
 	if coldData == "" || coldData == "ХВС" {
 		coldData = "No previous data"
