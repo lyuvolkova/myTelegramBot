@@ -69,10 +69,16 @@ func main() {
 			} else if text == "Bye" {
 				textMsg = "Bye bye!"
 			} else if text == "/cold_data" {
-				textMsg = "Cold water: " + getPrevData()
+				textMsg = "Cold water: " + getPrevData(1)
+			} else if text == "/hot_data" {
+				textMsg = "Hot water: " + getPrevData(5)
 			} else if strings.HasPrefix(text, "/cold_data ") {
 				parTable := [2]string{"A", "B"}
 				i := 0
+				textMsg = writeColdData(text, parTable, i)
+			} else if strings.HasPrefix(text, "/hot_data ") {
+				parTable := [2]string{"E", "F"}
+				i := 4
 				textMsg = writeColdData(text, parTable, i)
 			}
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
@@ -84,12 +90,18 @@ func main() {
 
 func writeColdData(text string, parTable [2]string, i int) string {
 
-	data := text[11:] //string([]rune(text)[11:])
+	var data string
+	if i == 4 {
+		data = text[10:]
+	} else {
+		data = text[11:]
+	}
+	//string([]rune(text)[11:])
 	coldData, err := strconv.ParseFloat(data, 32)
 	if err != nil {
 		return "Incorrect number"
 	} else {
-		if !checkData(coldData) {
+		if !checkData(coldData, i) {
 			return "Check number: new data < prev data"
 		} else {
 			dt := time.Now()
@@ -131,9 +143,9 @@ func writeColdData(text string, parTable [2]string, i int) string {
 	return "Ok, date saved"
 }
 
-func checkData(d1 float64) bool {
+func checkData(d1 float64, i int) bool {
 	//var d2 string
-	d2 := getPrevData()
+	d2 := getPrevData(i)
 	newD2, err := strconv.ParseFloat(d2, 32)
 	if err != nil {
 		log.Println(err)
@@ -144,7 +156,7 @@ func checkData(d1 float64) bool {
 	return true
 }
 
-func getPrevData() string {
+func getPrevData(i int) string {
 	file, err := excelize.OpenFile("WaterData.xlsx")
 	if err != nil {
 		log.Println(err)
@@ -161,7 +173,8 @@ func getPrevData() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	coldData := rows[1][len(rows[1])-1]
+	fmt.Println("I: ", i)
+	coldData := rows[i][len(rows[i])-1]
 	if coldData == "" || coldData == "ХВС" {
 		coldData = "No previous data"
 	}
