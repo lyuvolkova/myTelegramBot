@@ -1,4 +1,4 @@
-package main
+package water
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type waterService struct{}
 
 func NewWaterService() *waterService { return &waterService{} }
 
-func (s *waterService) writeColdData(text string, parTable [2]string, i int) string {
+func (s *waterService) WriteColdData(text string, parTable [2]string, i int) string {
 
 	var data string
 	if i == 4 {
@@ -93,7 +93,7 @@ func (s *waterService) writeColdData(text string, parTable [2]string, i int) str
 }
 
 func (s *waterService) checkData(d1 float64, i int) bool {
-	d2 := s.getPrevData(i + 1)
+	d2 := s.GetPrevData(i + 1)
 	if d2 == "No previous data" {
 		return true
 	}
@@ -107,7 +107,7 @@ func (s *waterService) checkData(d1 float64, i int) bool {
 	return true
 }
 
-func (s *waterService) getPrevData(i int) string {
+func (s *waterService) GetPrevData(i int) string {
 	file, err := excelize.OpenFile("WaterData.xlsx")
 	if err != nil {
 		log.Println(err)

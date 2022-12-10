@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/lyuvolkova/myTelegramBot/internal/pkg/handlers"
+	"github.com/lyuvolkova/myTelegramBot/internal/pkg/water"
 	"github.com/robfig/cron/v3"
 	"log"
 	"os"
@@ -54,9 +56,9 @@ func main() {
 
 	updates := bot.GetUpdatesChan(u)
 
-	water := NewWaterService()
+	waterService := water.NewWaterService()
 	for update := range updates {
-		if err := handlersMsg(water, update, users, bot); err != nil {
+		if err := handlers.HandlersMsg(waterService, update, users, bot); err != nil {
 			log.Println(err)
 		}
 

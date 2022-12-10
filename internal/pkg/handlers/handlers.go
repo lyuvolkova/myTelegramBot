@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func handlersMsg(water *waterService, update tgbotapi.Update, users map[int64]struct{}, bot *tgbotapi.BotAPI) error {
+func HandlersMsg(water waterService, update tgbotapi.Update, users map[int64]struct{}, bot *tgbotapi.BotAPI) error {
 	if update.Message != nil {
 		return nil
 	}
@@ -23,17 +23,17 @@ func handlersMsg(water *waterService, update tgbotapi.Update, users map[int64]st
 	} else if text == "Bye" {
 		textMsg = "Bye bye!"
 	} else if text == "/cold_data" {
-		textMsg = "Cold water: " + water.getPrevData(1)
+		textMsg = "Cold water: " + water.GetPrevData(1)
 	} else if text == "/hot_data" {
-		textMsg = "Hot water: " + water.getPrevData(5)
+		textMsg = "Hot water: " + water.GetPrevData(5)
 	} else if strings.HasPrefix(text, "/cold_data ") {
 		parTable := [2]string{"A", "B"}
 		i := 0
-		textMsg = water.writeColdData(text, parTable, i)
+		textMsg = water.WriteColdData(text, parTable, i)
 	} else if strings.HasPrefix(text, "/hot_data ") {
 		parTable := [2]string{"E", "F"}
 		i := 4
-		textMsg = water.writeColdData(text, parTable, i)
+		textMsg = water.WriteColdData(text, parTable, i)
 	}
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 	//msg.ReplyToMessageID = update.Message.MessageID
