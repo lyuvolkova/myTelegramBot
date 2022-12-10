@@ -6,37 +6,46 @@ import (
 	"strings"
 )
 
-func HandlersMsg(water waterService, update tgbotapi.Update, users map[int64]struct{}, bot *tgbotapi.BotAPI) error {
+type handler struct {
+	water waterService
+	users map[int64]struct{}
+	bot   *tgbotapi.BotAPI
+}
+
+func New(water waterService, users map[int64]struct{}, bot *tgbotapi.BotAPI) *handler {
+	return &handler{water: water, users: users, bot: bot}
+}
+
+func (h *handler) HandleMsg(update tgbotapi.Update) error {
 	if update.Message != nil {
 		return nil
 	}
 
-	if _, exists := users[update.Message.Chat.ID]; !exists { //check the sender of a message
+	if _, exists := h.users[update.Message.Chat.ID]; !exists { //check the sender of a message
 		return nil
 	}
 
 	text := update.Message.Text
 	log.Printf("[%s] %s\n", update.Message.From.UserName, text)
 	textMsg := "I don't understand you !"
-	if text == "Hello" {
+	switch {
+	case text == "Hello":
 		textMsg = "Hello, " + update.Message.Chat.FirstName + "!"
-	} else if text == "Bye" {
+		break
+	case text == "Bye":
 		textMsg = "Bye bye!"
-	} else if text == "/cold_data" {
-		textMsg = "Cold water: " + water.GetPrevData(1)
-	} else if text == "/hot_data" {
-		textMsg = "Hot water: " + water.GetPrevData(5)
-	} else if strings.HasPrefix(text, "/cold_data ") {
-		parTable := [2]string{"A", "B"}
-		i := 0
-		textMsg = water.WriteColdData(text, parTable, i)
-	} else if strings.HasPrefix(text, "/hot_data ") {
-		parTable := [2]string{"E", "F"}
-		i := 4
-		textMsg = water.WriteColdData(text, parTable, i)
+		break
+	case text == "/cold_data":
+		return h.getColdData(update)
+	case text == "/hot_data":
+		return h.getHotData(update)
+	case strings.HasPrefix(text, "/cold_data "):
+		return h.saveColdData(update)
+	case strings.HasPrefix(text, "/hot_data "):
+		return h.saveHotData(update)
 	}
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, textMsg)
 	//msg.ReplyToMessageID = update.Message.MessageID
-	_, err := bot.Send(msg)
+	_, err := h.bot.Send(msg)
 	return err
 }

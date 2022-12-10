@@ -57,8 +57,9 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	waterService := water.NewWaterService()
+	handler := handlers.New(waterService, users, bot)
 	for update := range updates {
-		if err := handlers.HandlersMsg(waterService, update, users, bot); err != nil {
+		if err := handler.HandleMsg(update); err != nil {
 			log.Println(err)
 		}
 
