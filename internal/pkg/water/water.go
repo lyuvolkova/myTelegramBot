@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"log"
+	"os"
 	"strconv"
 	"time"
 )
@@ -31,7 +32,8 @@ func (s *waterService) WriteColdData(text string, parTable [2]string, i int) str
 		} else {
 			dt := time.Now()
 			date := dt.Format("02.01.2006")
-			file, err := excelize.OpenFile("WaterData.xlsx")
+			fName := os.Getenv("FILE")
+			file, err := excelize.OpenFile(fName) //"WaterData.xlsx")
 			if err != nil {
 				log.Println(err)
 				return "Not open file"
@@ -84,7 +86,7 @@ func (s *waterService) WriteColdData(text string, parTable [2]string, i int) str
 
 			file.SetCellFloat("Water data", partValueWater, coldData, 2, 64)
 			file.SetCellValue("Water data", partDate, date)
-			if err := file.SaveAs("WaterData.xlsx"); err != nil {
+			if err := file.SaveAs(fName); err != nil {
 				return "Failed to save data :("
 			}
 		}
@@ -108,7 +110,9 @@ func (s *waterService) checkData(d1 float64, i int) bool {
 }
 
 func (s *waterService) GetPrevData(i int) string {
-	file, err := excelize.OpenFile("WaterData.xlsx")
+	fName := os.Getenv("FILE")
+
+	file, err := excelize.OpenFile(fName) //"WaterData.xlsx")
 	if err != nil {
 		log.Println(err)
 		return "Not open file"

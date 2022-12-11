@@ -28,7 +28,6 @@ func getUserId(str string) (map[int64]struct{}, error) {
 }
 
 func main() {
-	//coldData := ""
 	users, err := getUserId(os.Getenv("USER_IDS"))
 	if err != nil {
 		log.Panic(err)
